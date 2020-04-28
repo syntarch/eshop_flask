@@ -15,14 +15,15 @@
     <section>
       <h3 class="my-4">{{ category }}</h3>
       <div class="row mt-4">
-        {% for meal in meals.values() %}
+        {% for meal_id, meal in meals.items() %}
         <div class="col-12 col-md-4">
           <div class="card mb-3">
             <img src="/static/images/{{ meal.picture }}" width="300" height="200" class="card-img-top" alt="">
             <div class="card-body">
               <h4 class="h5 card-title">{{ meal.title }}</h4>
               <p class="card-text">{{ meal.description }}</p>
-              <a href="/addtocart1/" btn btn-danger">В корзину</a>
+              <p class="card-text">{{ meal.price }} Р</p>
+              <a href="/cart/{{ meal_id }}" class="btn btn-danger">В корзину</a>
             </div>
 
           </div>

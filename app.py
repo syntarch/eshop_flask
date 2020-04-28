@@ -1,6 +1,9 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, session
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField
+from wtforms.validators import InputRequired, Email
 
 
 app = Flask(__name__)
@@ -52,6 +55,27 @@ class Order(db.Model):
 
 db.create_all()
 
+class OrderForm(FlaskForm):
+    name = StringField('Ваше имя', InputRequired(message='Заполните поле'))
+    address = StringField('Ваш адрес', InputRequired(message='Заполните адрес'))
+    email = StringField('Ваш e-mail', InputRequired(message='Введите e-mail'))
+    telephone = StringField('Ваш номер телефона', InputRequired(message='Укажите номер телефона'))
+
+
+def cart_information(list_of_id):
+    cart_info = {'meals': {}, 'total_price': 0, 'number_of_meals': 0}
+    set_of_id = set(list_of_id)
+    if list_of_id:
+        for meal_id in set_of_id:
+            meal_count = list_of_id.count(meal_id)
+            meal = db.session.query(Meal).get(meal_id)
+            meal_title = meal.title
+            meal_price = meal.price
+            cart_info['meals'][meal_id] = {'title': meal_title, 'count': meal_count, 'price': meal_price}
+            cart_info['total_price'] += (meal_price * meal_count)
+            cart_info['number_of_meals'] += 1
+    return cart_info
+
 
 @app.route('/')
 def index():
@@ -66,11 +90,16 @@ def index():
         for meal in selected_meals:
             meals_for_main_page[category_title][meal.id] = {'title': meal.title, 'price': meal.price,
                                                             'description': meal.description, 'picture': meal.picture}
-    return render_template('main.html', all_meals=meals_for_main_page)
+    return render_template('main.html', all_meals=meals_for_main_page, cart=cart_information(session.get('cart', [])))
 
-@app.route('/cart/')
-def cart():
-    return render_template('cart.html')
+@app.route('/cart/<int:meal_id>')
+def cartf(meal_id):
+    cart = session.get('cart', [])
+    cart.append(meal_id)
+    session['cart'] = cart
+    if meal_id == 0:
+        session.clear()
+    return render_template('cart.html', cart=cart_information(session.get('cart', [])))
 
 @app.route('/account/')
 def account():
