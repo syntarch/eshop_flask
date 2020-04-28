@@ -1,9 +1,10 @@
-from flask import Flask, render_template, session
+from flask import Flask, render_template, session, request, redirect
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
-from wtforms.validators import InputRequired, Email
+from wtforms.validators import InputRequired, Email, Length
+from werkzeug.security import generate_password_hash, check_password_hash
 
 
 app = Flask(__name__)
@@ -17,8 +18,19 @@ class Client(db.Model):
     __tablename__ = 'clients'
     id = db.Column(db.Integer, primary_key=True)
     mail = db.Column(db.String(20), nullable=False, unique=True)
-    password = db.Column(db.String(), nullable=False, unique=True)
+    password_hash = db.Column(db.String(), nullable=False, unique=True)
     orders = db.relationship('Order', back_populates='client')
+
+    @property
+    def password(self):
+        raise AttributeError("Вам не нужно знать пароль!")
+
+    @password.setter
+    def password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def password_valid(self, password):
+        return check_password_hash(self.password_hash, password)
 
 
 class Meal(db.Model):
@@ -64,6 +76,12 @@ class OrderForm(FlaskForm):
     submit = SubmitField('Отправить заказ')
 
 
+class RegistrationForm(FlaskForm):
+    mail = StringField('Введите почту', [Email()])
+    password = PasswordField('Введите пароль', [Length(min=5)])
+    submit = SubmitField('Зарегистрироваться')
+
+
 def cart_information(list_of_id):
     cart_info = {'meals': {}, 'total_price': 0, 'number_of_meals': 0}
     set_of_id = set(list_of_id)
@@ -105,17 +123,40 @@ def cartf(meal_id):
     print(cart_information(session.get('cart', [])))
     return render_template('cart.html', cart=cart_information(session.get('cart', [])), form=form)
 
-@app.route('/account/')
+@app.route('/account/', methods=['GET', 'POST'])
 def account():
-    return render_template('account.html')
+    if session['auth']:
+        return render_template('account.html', cart=cart_information(session.get('cart', [])))
+    else:
+        return redirect('register')
 
 @app.route('/login/')
 def login():
     return render_template('login.html')
 
-@app.route('/register/')
+@app.route('/register/', methods=['GET', 'POST'])
 def register():
-    return render_template('register.html')
+    form = RegistrationForm()
+    if request.method == 'POST' and form.validate_on_submit():
+        mail = form.mail.data
+        client = db.session.query(Client).filter(Client.mail == mail).first()
+        if client:
+            if client.password_valid(form.password.data):
+                session['auth'] = True
+                return redirect('/account/')
+            else:
+                err_msg = 'Не верный пароль вводишь ты'
+                return render_template('register.html', form=form, err_msg=err_msg)
+        else:
+            new_client = Client(mail=mail, password_hash=generate_password_hash(form.password.data))
+            db.session.add(new_client)
+            db.session.commit()
+            session['auth'] = True
+            return redirect('/account/')
+    elif request.method == 'POST' and not form.validate_on_submit():
+        return render_template('register.html', form=form)
+    else:
+        return render_template('register.html', form=form)
 
 @app.route('/logout/')
 def logout():
