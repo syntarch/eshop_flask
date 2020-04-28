@@ -2,7 +2,7 @@ from flask import Flask, render_template, session
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField
+from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import InputRequired, Email
 
 
@@ -55,11 +55,13 @@ class Order(db.Model):
 
 db.create_all()
 
+
 class OrderForm(FlaskForm):
-    name = StringField('Ваше имя', InputRequired(message='Заполните поле'))
-    address = StringField('Ваш адрес', InputRequired(message='Заполните адрес'))
-    email = StringField('Ваш e-mail', InputRequired(message='Введите e-mail'))
-    telephone = StringField('Ваш номер телефона', InputRequired(message='Укажите номер телефона'))
+    name = StringField('Ваше имя', [InputRequired(message='Введите имя')])
+    address = StringField('Ваш адрес', [InputRequired(message='Введите адрес')])
+    email = StringField('Ваш e-mail', [InputRequired(message='Укажите e-mail'), Email()])
+    phone = StringField('Ваш номер телефона', [InputRequired(message='Введите номер телефона')])
+    submit = SubmitField('Отправить заказ')
 
 
 def cart_information(list_of_id):
@@ -94,12 +96,14 @@ def index():
 
 @app.route('/cart/<int:meal_id>')
 def cartf(meal_id):
+    form = OrderForm()
     cart = session.get('cart', [])
     cart.append(meal_id)
     session['cart'] = cart
     if meal_id == 0:
         session.clear()
-    return render_template('cart.html', cart=cart_information(session.get('cart', [])))
+    print(cart_information(session.get('cart', [])))
+    return render_template('cart.html', cart=cart_information(session.get('cart', [])), form=form)
 
 @app.route('/account/')
 def account():
