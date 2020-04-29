@@ -1,15 +1,17 @@
 from datetime import date
+
 from flask import Flask, render_template, session, request, redirect
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
-from forms import OrderForm, RegistrationForm
 from werkzeug.security import generate_password_hash, check_password_hash
+
+from forms import OrderForm, RegistrationForm
+from config import Config
 
 
 app = Flask(__name__)
-app.secret_key = 'top_secret_key'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///project.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config.from_object(Config)
+
 db = SQLAlchemy(app)
 
 
