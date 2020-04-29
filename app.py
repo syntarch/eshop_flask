@@ -125,10 +125,10 @@ def cartf(meal_id):
 
 @app.route('/account/', methods=['GET', 'POST'])
 def account():
-    if session['auth']:
+    if session.get('auth', []):
         return render_template('account.html', cart=cart_information(session.get('cart', [])))
     else:
-        return redirect('register')
+        return redirect('/register/')
 
 @app.route('/login/')
 def login():
