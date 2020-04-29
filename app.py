@@ -1,3 +1,4 @@
+from datetime import date
 from flask import Flask, render_template, session, request, redirect
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
@@ -105,10 +106,11 @@ def cartf(meal_id):
     cart = session.get('cart', [])
     cart.append(meal_id)
     session['cart'] = cart
+    status = session.get('auth', [])
     if meal_id == 0:
         session.clear()
     print(cart_information(session.get('cart', [])))
-    return render_template('cart.html', cart=cart_information(session.get('cart', [])), form=form)
+    return render_template('cart.html', cart=cart_information(session.get('cart', [])), form=form, status=status)
 
 @app.route('/mealremove/<int:meal_id>')
 def mealremove(meal_id):
@@ -137,7 +139,8 @@ def register():
         client = db.session.query(Client).filter(Client.mail == mail).first()
         if client:
             if client.password_valid(form.password.data):
-                session['auth'] = True
+                session['auth'] = client.id
+                print(session['auth'])
                 return redirect('/account/')
             else:
                 err_msg = 'Не верный пароль вводишь ты'
@@ -155,11 +158,34 @@ def register():
 
 @app.route('/logout/')
 def logout():
-    return render_template('login.html')
+    session['auth'] = False
+    return redirect('/')
 
-@app.route('/ordered/')
+
+@app.route('/ordered/', methods=['GET', 'POST'])
 def ordered():
-    return render_template('ordered.html')
+    form = OrderForm()
+    if request.method == 'POST' and form.validate_on_submit():
+        order_price = (cart_information(session.get('cart', [])))['total_price']
+        status = 'Готовится'
+        email = form.email.data
+        phone = form.phone.data
+        address = form.address.data
+        list_of_meals = []
+        all_cart = (cart_information(session.get('cart', [])))
+        meals_in_order = all_cart['meals']
+        for meal in meals_in_order.values():
+            list_of_meals += [meal['title']]
+        str_meals = ';'.join(list_of_meals)
+        print(str_meals)
+        client_id = session.get('auth', False)
+        order = Order(date=date.today(), price=order_price, status=status, mail=email, phone=phone, address=address,
+                      composition=str_meals, client_id=client_id)
+        db.session.add(order)
+        db.session.commit()
+        return render_template('ordered.html')
+    else:
+        return redirect('/')
 
 
 if __name__ == '__main__':

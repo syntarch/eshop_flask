@@ -3,14 +3,15 @@
   <main class="container">
     <h1 class="h3 my-4">Корзина</h1>
 
-    <div class="alert alert-warning" role="alert">Блюдо удалено из корзины</div>
-    <div class="alert alert-warning" role="alert">Чтобы сделать заказ – <a href="/login/">войдите</a> или <a href="/register/">зарегистрируйтесь</a></div>
-
+    {% if not status %}
+    <div class="alert alert-warning" role="alert">Чтобы сделать заказ – <a href="/register/">войдите</a> или <a href="/register/">зарегистрируйтесь</a></div>
+    {% endif %}
     <div class="row mt-5">
 
 
         <div class="col-4">
-          <form action="/cart/" method="POST">
+          {% if status %}
+          <form action="/ordered/" method="POST">
           <h4 class="">Ваши данные</h4>
             {{ form.csrf_token }}
             <div class="md-4 form-label-group">
@@ -36,6 +37,7 @@
            <input type="hidden" value="[1,3,4]" name="order_cart">
           {{ form.submit }}
           </form>
+          {% endif %}
         </div>
         </div>
 
