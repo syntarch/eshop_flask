@@ -123,7 +123,10 @@ def mealremove(meal_id):
 @app.route('/account/', methods=['GET', 'POST'])
 def account():
     if session.get('auth', []):
-        return render_template('account.html', cart=cart_information(session.get('cart', [])))
+        client_id = session.get('auth', [])
+        client_orders = db.session.query(Order).filter(Order.client_id == client_id).all()
+        return render_template('account.html', cart=cart_information(session.get('cart', [])),
+                               orders=client_orders)
     else:
         return redirect('/register/')
 
@@ -174,10 +177,10 @@ def ordered():
         list_of_meals = []
         all_cart = (cart_information(session.get('cart', [])))
         meals_in_order = all_cart['meals']
+        print(meals_in_order)
         for meal in meals_in_order.values():
             list_of_meals += [meal['title']]
-        str_meals = ';'.join(list_of_meals)
-        print(str_meals)
+        str_meals = '; '.join(list_of_meals)
         client_id = session.get('auth', False)
         order = Order(date=date.today(), price=order_price, status=status, mail=email, phone=phone, address=address,
                       composition=str_meals, client_id=client_id)
