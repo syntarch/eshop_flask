@@ -1,9 +1,8 @@
 from datetime import date
 
 from flask import Flask, render_template, session, request, redirect
-
 from sqlalchemy import func
-
+from werkzeug.security import generate_password_hash
 
 from forms import OrderForm, RegistrationForm
 from config import Config
@@ -13,64 +12,6 @@ from models import Client, Meal, Category, Order, db
 app = Flask(__name__)
 app.config.from_object(Config)
 db.init_app(app)
-# db = SQLAlchemy(app)
-
-
-# class Client(db.Model):
-#     __tablename__ = 'clients'
-#     id = db.Column(db.Integer, primary_key=True)
-#     mail = db.Column(db.String(20), nullable=False, unique=True)
-#     password_hash = db.Column(db.String(), nullable=False, unique=True)
-#     orders = db.relationship('Order', back_populates='client')
-#
-#     @property
-#     def password(self):
-#         raise AttributeError("Вам не нужно знать пароль!")
-#
-#     @password.setter
-#     def password(self, password):
-#         self.password_hash = generate_password_hash(password)
-#
-#     def password_valid(self, password):
-#         return check_password_hash(self.password_hash, password)
-#
-#
-# class Meal(db.Model):
-#     __tablename__ = 'meals'
-#     id = db.Column(db.Integer, primary_key=True)
-#     title = db.Column(db.String())
-#     price = db.Column(db.Integer)
-#     description = db.Column(db.String(140))
-#     picture = db.Column(db.String())
-#     category = db.relationship('Category', back_populates='meals')
-#     category_id = db.Column(db.Integer, db.ForeignKey('categories.id'))
-#
-#
-# class Category(db.Model):
-#     __tablename__ = 'categories'
-#     id = db.Column(db.Integer, primary_key=True)
-#     title = db.Column(db.String())
-#     meals = db.relationship('Meal', back_populates='category')
-#
-#
-# class Order(db.Model):
-#     __tablename__ = 'orders'
-#     id = db.Column(db.Integer, primary_key=True)
-#     date = db.Column(db.String())
-#     price = db.Column(db.Integer)
-#     status = db.Column(db.String(20))
-#     mail = db.Column(db.String(), nullable=False)
-#     phone = db.Column(db.String(), nullable=False)
-#     address = db.Column(db.String(), nullable=False)
-#     composition = db.Column(db.String())
-#     client = db.relationship('Client', back_populates='orders')
-#     client_id = db.Column(db.Integer, db.ForeignKey('clients.id'))
-
-
-# db.create_all()
-
-
-
 
 
 def cart_information(list_of_id):
@@ -110,9 +51,6 @@ def cartf(meal_id):
     cart.append(meal_id)
     session['cart'] = cart
     status = session.get('auth', [])
-    if meal_id == 0:
-        session.clear()
-    print(cart_information(session.get('cart', [])))
     return render_template('cart.html', cart=cart_information(session.get('cart', [])), form=form, status=status)
 
 @app.route('/mealremove/<int:meal_id>')
@@ -121,7 +59,8 @@ def mealremove(meal_id):
     cart = session.get('cart', [])
     cart.remove(meal_id)
     session['cart'] = cart
-    return render_template('cart.html', cart=cart_information(session.get('cart', [])), form=form)
+    status = session.get('auth', [])
+    return render_template('cart.html', cart=cart_information(session.get('cart', [])), form=form, status=status)
 
 @app.route('/account/', methods=['GET', 'POST'])
 def account():
@@ -133,9 +72,6 @@ def account():
     else:
         return redirect('/register/')
 
-@app.route('/login/')
-def login():
-    return render_template('login.html')
 
 @app.route('/register/', methods=['GET', 'POST'])
 def register():
@@ -146,7 +82,6 @@ def register():
         if client:
             if client.password_valid(form.password.data):
                 session['auth'] = client.id
-                print(session['auth'])
                 return redirect('/account/')
             else:
                 err_msg = 'Не верный пароль вводишь ты'
@@ -165,7 +100,7 @@ def register():
 @app.route('/logout/')
 def logout():
     session['auth'] = False
-    return redirect('/')
+    return redirect('/register/')
 
 
 @app.route('/ordered/', methods=['GET', 'POST'])
@@ -180,7 +115,6 @@ def ordered():
         list_of_meals = []
         all_cart = (cart_information(session.get('cart', [])))
         meals_in_order = all_cart['meals']
-        print(meals_in_order)
         for meal in meals_in_order.values():
             list_of_meals += [meal['title']]
         str_meals = '; '.join(list_of_meals)
