@@ -46,13 +46,13 @@
         <h4 class="mb-3 col-7 mb-5">В корзине {{ cart.number_of_meals }} блюд</h4>
         <table class="table">
           <tbody>
-          {% for meal in cart.meals.values() %}
+          {% for meal_id, meal in cart.meals.items() %}
             <tr>
               <th scope="row">{{ meal.title }}</th>
               <td></td>
               <td>{{ meal.count }}</td>
               <td>{{ meal.price }}</td>
-              <td><a class="text-danger" href="#">Удалить</a></td>
+              <td><a class="text-danger" href="/mealremove/{{ meal_id }}">Удалить</a></td>
             </tr>
           {% endfor %}
           </tbody>

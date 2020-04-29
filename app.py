@@ -1,9 +1,7 @@
 from flask import Flask, render_template, session, request, redirect
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
-from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField
-from wtforms.validators import InputRequired, Email, Length
+from forms import OrderForm, RegistrationForm
 from werkzeug.security import generate_password_hash, check_password_hash
 
 
@@ -68,18 +66,7 @@ class Order(db.Model):
 db.create_all()
 
 
-class OrderForm(FlaskForm):
-    name = StringField('Ваше имя', [InputRequired(message='Введите имя')])
-    address = StringField('Ваш адрес', [InputRequired(message='Введите адрес')])
-    email = StringField('Ваш e-mail', [InputRequired(message='Укажите e-mail'), Email()])
-    phone = StringField('Ваш номер телефона', [InputRequired(message='Введите номер телефона')])
-    submit = SubmitField('Отправить заказ')
 
-
-class RegistrationForm(FlaskForm):
-    mail = StringField('Введите почту', [Email()])
-    password = PasswordField('Введите пароль', [Length(min=5)])
-    submit = SubmitField('Зарегистрироваться')
 
 
 def cart_information(list_of_id):
@@ -121,6 +108,14 @@ def cartf(meal_id):
     if meal_id == 0:
         session.clear()
     print(cart_information(session.get('cart', [])))
+    return render_template('cart.html', cart=cart_information(session.get('cart', [])), form=form)
+
+@app.route('/mealremove/<int:meal_id>')
+def mealremove(meal_id):
+    form = OrderForm()
+    cart = session.get('cart', [])
+    cart.remove(meal_id)
+    session['cart'] = cart
     return render_template('cart.html', cart=cart_information(session.get('cart', [])), form=form)
 
 @app.route('/account/', methods=['GET', 'POST'])
