@@ -3,6 +3,8 @@ from datetime import date
 from flask import Flask, render_template, session, request, redirect
 from sqlalchemy import func
 from werkzeug.security import generate_password_hash
+from flask_admin import Admin
+from flask_admin.contrib.sqla import ModelView
 
 from forms import OrderForm, RegistrationForm
 from config import Config
@@ -12,6 +14,12 @@ from models import Client, Meal, Category, Order, db
 app = Flask(__name__)
 app.config.from_object(Config)
 db.init_app(app)
+admin = Admin(app)
+
+admin.add_view(ModelView(Client, db.session))
+admin.add_view(ModelView(Meal, db.session))
+admin.add_view(ModelView(Category, db.session))
+admin.add_view(ModelView(Order, db.session))
 
 
 def cart_information(list_of_id):
